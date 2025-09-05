@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive Programming Quiz Platform - Master HTML, JavaScript, PHP and Many Other Languages">
+    <title>QuizCraft - Interactive Programming Quizzes ✨</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="assets/css/main.css" as="style">
+    <link rel="preload" href="assets/js/main.js" as="script">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/components/animations.css">
+    <link rel="stylesheet" href="assets/css/themes/dark.css" id="theme-style">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="assets/images/icons/favicon.jpeg">
+    
+    <!-- Cyberpunk Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body data-theme="dark">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="logo-animation">
+                <span class="logo-text">QuizCraft</span>
+                <div class="sparkles"></div>
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+            <p class="loading-text">Initializing cyberpunk quiz matrix...</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-code brand-icon"></i>
+                <span class="brand-text">QuizCraft</span>
+            </div>
+            
+            <div class="nav-controls">
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+                
+                <button class="sound-toggle" id="sound-toggle" aria-label="Toggle sound">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                
+                <a href="https://kavlin-kaur.github.io/kavres/" class="user-profile" target="_blank" rel="noopener noreferrer" aria-label="View Kavlin's portfolio" style="text-decoration: none;">
+                    <img src="assets/images/avatars/Kavlin Madam.jpeg" alt="Kavlin's Avatar" class="avatar">
+                    <span class="username">Kavlin</span>
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-background">
+                <div class="floating-elements">
+                    <div class="code-snippet snippet-1">&lt;cyber&gt;</div>
+                    <div class="code-snippet snippet-2">{ neon: true }</div>
+                    <div class="code-snippet snippet-3">console.glow()</div>
+                    <div class="code-snippet snippet-4">&lt;/matrix&gt;</div>
+                </div>
+            </div>
+            
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span class="title-line">Enter the Code Matrix</span>
+                    <span class="title-line title-accent">Master the Digital Realm</span>
+                </h1>
+                
+                <p class="hero-description">
+                    Jack into the cyberpunk quiz network where knowledge meets neon.
+                    Navigate through digital challenges and emerge as a coding legend.
+                </p>
+                
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number" data-count="16">0</span>
+                        <span class="stat-label">Neural Networks</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-count="60">0</span>
+                        <span class="stat-label">Data Streams</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-count="100">0</span>
+                        <span class="stat-label">% Cyber</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Kavlin Tribute Section -->
+        <section class="kavlin-tribute">
+            <h2>🌟 Developed by Kavlin 🌟</h2>
+            <p><strong>Original Architect & Visionary</strong></p>
+            <p>A brilliant developer who codes with passion and a poet who writes with her heart.</p>
+            <p class="poet-quote">"In every line of code, there's poetry waiting to be discovered."</p>
+        </section>
+
+        <!-- Quiz Selection -->
+        <section class="quiz-selection">
+            <div class="container">
+                <h2 class="section-title">Choose Your Protocol</h2>
+                <p class="section-subtitle">Each neural pathway contains 10 encrypted challenges to decode your expertise</p>
+                
+                <div class="quiz-grid">
+                    <!-- HTML Quiz -->
+                    <div class="quiz-card" data-language="html">
+                        <div class="card-background">
+                            <i class="fab fa-html5 card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">HTML Matrix Core</h3>
+                            <p class="card-description">Decode the structural foundations of the digital web</p>
+                            <div class="card-stats">
+                                <span class="difficulty easy">Neural-Link</span>
+                                <span class="questions-count">10 Data Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Synchronized</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('html')">
+                            <span>Initialize Protocol</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- CSS Quiz -->
+                    <div class="quiz-card" data-language="css">
+                        <div class="card-background">
+                            <i class="fab fa-css3-alt card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">CSS Neon Engine</h3>
+                            <p class="card-description">Master the visual aesthetics of the cyber realm</p>
+                            <div class="card-stats">
+                                <span class="difficulty medium">Cyber-Enhanced</span>
+                                <span class="questions-count">10 Style Layers</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Rendered</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('css')">
+                            <span>Engage Visuals</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- JavaScript Quiz -->
+                    <div class="quiz-card" data-language="javascript">
+                        <div class="card-background">
+                            <i class="fab fa-js-square card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">JS Neural Network</h3>
+                            <p class="card-description">Control the interactive consciousness of the matrix</p>
+                            <div class="card-stats">
+                                <span class="difficulty medium">Cyber-Enhanced</span>
+                                <span class="questions-count">10 Logic Gates</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Executed</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('javascript')">
+                            <span>Execute Code</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Java Quiz -->
+                    <div class="quiz-card" data-language="java">
+                        <div class="card-background">
+                            <i class="fab fa-java card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Java Mainframe</h3>
+                            <p class="card-description">Navigate the enterprise-level security protocols</p>
+                            <div class="card-stats">
+                                <span class="difficulty hard">Ghost Protocol</span>
+                                <span class="questions-count">10 Security Layers</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Compiled</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('java')">
+                            <span>Access Mainframe</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- C++ Quiz -->
+                    <div class="quiz-card" data-language="cpp">
+                        <div class="card-background">
+                            <i class="fas fa-code card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">C++ Core System</h3>
+                            <p class="card-description">Hack into the lowest level of machine consciousness</p>
+                            <div class="card-stats">
+                                <span class="difficulty hard">Ghost Protocol</span>
+                                <span class="questions-count">10 Memory Banks</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Optimized</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('cpp')">
+                            <span>Breach System</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- PHP Quiz -->
+                    <div class="quiz-card" data-language="php">
+                        <div class="card-background">
+                            <i class="fab fa-php card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">PHP Server Grid</h3>
+                            <p class="card-description">Control the backend infrastructure of the cyber world</p>
+                            <div class="card-stats">
+                                <span class="difficulty medium">Cyber-Enhanced</span>
+                                <span class="questions-count">10 Server Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Connected</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('php')">
+                            <span>Connect Server</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="quiz-card" data-language="python">
+                        <div class="card-background">
+                            <i class="fab fa-python card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Pythonic Nexus</h3>
+                            <p class="card-description">Harness the power of elegant syntax and vast libraries</p>
+                            <div class="card-stats">
+                                <span class="difficulty easy">Neural-Link</span>
+                                <span class="questions-count">10 Data Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Interpreted</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('python')">
+                            <span>Run Script</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="quiz-card" data-language="go">
+                        <div class="card-background">
+                            <i class="fab fa-golang card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Go Concurrency Core</h3>
+                            <p class="card-description">Master the art of concurrent programming with goroutines and channels</p>
+                            <div class="card-stats">
+                                <span class="difficulty medium">Cyber-Enhanced</span>
+                                <span class="questions-count">10 Data Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Compiled</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('go')">
+                            <span>Engage Concurrency</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="quiz-card" data-language="rust">
+                        <div class="card-background">
+                            <i class="fab fa-rust card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Rust Ownership Matrix</h3>
+                            <p class="card-description">Achieve memory safety without a garbage collector</p>
+                            <div class="card-stats">
+                                <span class="difficulty hard">Ghost Protocol</span>
+                                <span class="questions-count">10 Data Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Compiled</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('rust')">
+                            <span>Check Ownership</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="quiz-card" data-language="typescript">
+                        <div class="card-background">
+                            <i class="fab fa-js-square card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">TypeScript Type System</h3>
+                            <p class="card-description">Bring static typing to your JavaScript projects</p>
+                            <div class="card-stats">
+                                <span class="difficulty medium">Cyber-Enhanced</span>
+                                <span class="questions-count">10 Data Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Transpiled</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('typescript')">
+                            <span>Check Types</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="quiz-card" data-language="kotlin">
+                        <div class="card-background">
+                            <i class="fab fa-android card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Kotlin Coroutine Engine</h3>
+                            <p class="card-description">Write concise, safe, and interoperable code</p>
+                            <div class="card-stats">
+                                <span class="difficulty medium">Cyber-Enhanced</span>
+                                <span class="questions-count">10 Data Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Compiled</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('kotlin')">
+                            <span>Launch Coroutine</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="quiz-card" data-language="swift">
+                        <div class="card-background">
+                            <i class="fab fa-apple card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Swift Protocol Nexus</h3>
+                            <p class="card-description">Build powerful and intuitive apps for the Apple ecosystem</p>
+                            <div class="card-stats">
+                                <span class="difficulty medium">Cyber-Enhanced</span>
+                                <span class="questions-count">10 Data Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Compiled</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('swift')">
+                            <span>Build App</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="quiz-card" data-language="csharp">
+                        <div class="card-background">
+                            <i class="fab fa-windows card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">C# .NET Core</h3>
+                            <p class="card-description">Develop versatile applications on the .NET platform</p>
+                            <div class="card-stats">
+                                <span class="difficulty medium">Cyber-Enhanced</span>
+                                <span class="questions-count">10 Data Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Compiled</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('csharp')">
+                            <span>Compile Code</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="quiz-card" data-language="ruby">
+                        <div class="card-background">
+                            <i class="fas fa-gem card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Ruby on Rails Grid</h3>
+                            <p class="card-description">Master the framework for developer happiness and productivity</p>
+                            <div class="card-stats">
+                                <span class="difficulty medium">Cyber-Enhanced</span>
+                                <span class="questions-count">10 Data Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Interpreted</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('ruby')">
+                            <span>Run Migration</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="quiz-card" data-language="sql">
+                        <div class="card-background">
+                            <i class="fas fa-database card-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">SQL Query Engine</h3>
+                            <p class="card-description">Unlock the power of data with structured queries</p>
+                            <div class="card-stats">
+                                <span class="difficulty easy">Neural-Link</span>
+                                <span class="questions-count">10 Data Nodes</span>
+                            </div>
+                            <div class="card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="--progress: 0%"></div>
+                                </div>
+                                <span class="progress-text">0% Queried</span>
+                            </div>
+                        </div>
+                        <button class="card-button" onclick="startQuiz('sql')">
+                            <span>Execute Query</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                <div class="quiz-card" data-language="bash">
+                    <div class="card-background">
+                        <i class="fas fa-terminal card-icon"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Bash Command Line</h3>
+                        <p class="card-description">Automate tasks and control your system with the shell</p>
+                        <div class="card-stats">
+                            <span class="difficulty medium">Cyber-Enhanced</span>
+                            <span class="questions-count">10 Data Nodes</span>
+                        </div>
+                        <div class="card-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="--progress: 0%"></div>
+                            </div>
+                            <span class="progress-text">0% Executed</span>
+                        </div>
+                    </div>
+                    <button class="card-button" onclick="startQuiz('bash')">
+                        <span>Run Command</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Statistics Section -->
+        <section class="statistics">
+            <div class="container">
+                <h2 class="section-title">Neural Analytics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="total-score">0</span>
+                            <span class="stat-label">System Score</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="streak">0</span>
+                            <span class="stat-label">Hack Streak</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="time-spent">0m</span>
+                            <span class="stat-label">Matrix Time</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="accuracy">0%</span>
+                            <span class="stat-label">Neural Sync</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>QuizCraft</h3>
+                    <p>Empowering cyber warriors through neural learning protocols</p>
+                    <div class="social-links">
+                        <a href="https://github.com/Kavlin-Kaur" aria-label="GitHub"><i class="fab fa-github"></i></a>
+                        <a href="https://linkedin.com/in/kavlin-kaur" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Neural Links</h4>
+                    <div class="footer-details">
+                        <details>
+                            <summary>System Info</summary>
+                            <p>QuizCraft is a hyper-interactive learning matrix built on modern web protocols. Our system runs on passion, coffee, and a little bit of cyberpunk magic.</p>
+                        </details>
+                        <details>
+                            <summary>Contact Grid</summary>
+                            <p>To jack into our network, transmit your data packets to: <a href="mailto:contact@quizcraft.dev">contact@quizcraft.dev</a>. Response time may vary based on solar flare activity.</p>
+                        </details>
+                        <details>
+                            <summary>Data Privacy</summary>
+                            <p>Your progress is stored locally in your browser's localStorage. We don't track you across the net. Your data is yours alone.</p>
+                        </details>
+                        <details>
+                            <summary>Usage Terms</summary>
+                            <p>1. You shall learn. 2. You shall have fun. 3. Do not attempt to decompile the matrix. 4. Share your knowledge.</p>
+                        </details>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Created with 💖</h4>
+                    <p><strong>Original Architect:</strong> Kavlin</p>
+                    <p><em>Developer • Poet • Visionary</em></p>
+                    <p>Making coding beautiful, one quiz at a time</p>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 QuizCraft • Built in the digital frontier • Powered by passion</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/theme-manager.js"></script>
+    <script src="assets/js/main.js"></script>
+
+</body>
+</html>
