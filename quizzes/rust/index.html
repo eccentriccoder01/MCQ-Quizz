@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rust Quiz - QuizCraft</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/components/quiz.css">
+  <link rel="stylesheet" href="../../assets/css/components/animations.css">
+  <link rel="stylesheet" href="../../assets/css/themes/dark.css" id="theme-style">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/quiz-engine.js"></script>
+  <script src="quiz-data.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      new QuizEngine(rustQuestions, 'rust');
+    });
+  </script>
+</body>
+</html>
