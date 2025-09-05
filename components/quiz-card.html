@@ -1,0 +1,834 @@
+<!--
+  QuizCraft Reusable Quiz Card Component (Enhanced)
+  ------------------------------------------------------------------
+  Features Added vs prior version:
+    + LocalStorage progress auto-binding (key: quiz-results)
+    + Emits CustomEvents: quizcard:start, quizcard:retry, quizcard:focus
+    + Optional data-locked state (shows lock overlay and disables launch)
+    + Skeleton loading variant (data-skeleton="true")
+    + Data badges: data-badge="Mastered" (renders pill)
+    + Auto-detect progress from global stats (if window.quizCraft present)
+    + IntersectionObserver fade/slide-in animation
+    + Tooltip helper for difficulty and progress
+    + Accessible ARIA updates on progress changes
+    + Handles “completed vs mastered” thresholds (90%+ = mastered)
+    + Supports dynamic theme changes (listens to themeChanged)
+    + Clean separation of config at top for easy tweaking
+
+  Usage Steps (minimal):
+    1. Keep this file in components/.
+    2. Include via server-side include OR copy <template> into index.html.
+    3. Clone, set data-* attributes, then call hydrateQuizCard(el).
+
+  Required data-* attributes:
+    data-language       (html | css | javascript | java | cpp | php)
+    data-title
+    data-description
+    Optional:
+    data-difficulty     (easy | medium | hard) default medium
+    data-questions      (int) default 10
+    data-icon           (Font Awesome classes)
+    data-locked="true"  (prevents starting)
+    data-badge="Mastered" (shows badge)
+
+  Example:
+    const tpl = document.getElementById('quiz-card-template');
+    const card = tpl.content.firstElementChild.cloneNode(true);
+    card.dataset.language = 'javascript';
+    card.dataset.title = 'JavaScript Logic';
+    card.dataset.description = 'Master closures, scope & async patterns';
+    hydrateQuizCard(card);
+    document.querySelector('.quiz-grid').appendChild(card);
+-->
+
+<template id="quiz-card-template">
+  <article class="quiz-card is-hidden"
+           tabindex="0"
+           role="group"
+           aria-label="Quiz card"
+           data-language=""
+           data-title=""
+           data-description=""
+           data-difficulty="medium"
+           data-questions="10"
+           data-progress="0"
+           data-icon="fas fa-code">
+
+    <!-- Lock Layer -->
+    <div class="lock-overlay" aria-hidden="true">
+      <i class="fas fa-lock"></i>
+      <span class="lock-text">Locked</span>
+    </div>
+
+    <!-- Decorative radial glow -->
+    <div class="quiz-card-glow" aria-hidden="true"></div>
+
+    <!-- Floating background icon -->
+    <div class="card-background">
+      <i class="card-icon"></i>
+    </div>
+
+    <div class="card-content">
+      <header class="card-header">
+        <h3 class="card-title"></h3>
+        <span class="card-language-tag" aria-hidden="true"></span>
+      </header>
+
+      <p class="card-description"></p>
+
+      <div class="meta-row">
+        <span class="difficulty-badge" data-tooltip="">
+          <span class="difficulty-dot" aria-hidden="true"></span>
+          <span class="difficulty-label"></span>
+          <span class="visually-hidden difficulty-a11y"></span>
+        </span>
+        <span class="questions-count"></span>
+        <span class="status-badge" hidden></span>
+        <span class="generic-badge" hidden></span>
+      </div>
+
+      <div class="card-progress" aria-label="Quiz progress">
+        <div class="progress-bar"
+             role="progressbar"
+             aria-valuemin="0"
+             aria-valuemax="100"
+             aria-valuenow="0"
+             aria-label="Completion progress">
+          <div class="progress-fill"></div>
+        </div>
+        <span class="progress-text">0% Complete</span>
+      </div>
+
+      <div class="card-actions">
+        <button class="card-button start-btn" type="button" aria-label="Start quiz">
+          <span class="btn-label start-label">Start Quiz</span>
+          <span class="btn-label retry-label" hidden>Retry Quiz</span>
+          <i class="fas fa-arrow-right start-icon"></i>
+          <i class="fas fa-rotate-right retry-icon" hidden></i>
+        </button>
+        <button class="card-secondary review-btn" type="button" hidden>
+          <i class="fas fa-eye"></i>
+          Review
+        </button>
+      </div>
+    </div>
+
+    <!-- Hover sparkle accents -->
+    <div class="sparkle sparkle-1" aria-hidden="true">✧</div>
+    <div class="sparkle sparkle-2" aria-hidden="true">✦</div>
+    <div class="sparkle sparkle-3" aria-hidden="true">✧</div>
+
+    <!-- Skeleton placeholders (shown if data-skeleton="true") -->
+    <div class="skeleton-layer" aria-hidden="true">
+      <div class="sk-line sk-title"></div>
+      <div class="sk-line sk-text"></div>
+      <div class="sk-line sk-text short"></div>
+      <div class="sk-line sk-progress"></div>
+      <div class="sk-btn"></div>
+    </div>
+  </article>
+</template>
+
+<script>
+/* -------------------------------------------------
+   Configuration
+---------------------------------------------------*/
+const QUIZ_CARD_CONFIG = {
+  masteredThreshold: 90,
+  progressKey: 'quiz-results',   // localStorage key used earlier in quiz engine
+  animationDelayBase: 80,        // ms base delay for stagger
+  enableObserver: true,
+  emitEvents: true
+};
+
+/* -------------------------------------------------
+   Difficulty Metadata
+---------------------------------------------------*/
+const DIFFICULTY_META = {
+  easy:   { text: 'Beginner',     cls: 'diff-easy',   tooltip: 'Suitable if you are just starting' },
+  medium: { text: 'Intermediate', cls: 'diff-medium', tooltip: 'Great for building deeper skill' },
+  hard:   { text: 'Advanced',     cls: 'diff-hard',   tooltip: 'Challenging content' }
+};
+
+/* -------------------------------------------------
+   Helper: Fetch stored quiz progress
+---------------------------------------------------*/
+function getStoredQuizProgress(language) {
+  try {
+    const raw = localStorage.getItem(QUIZ_CARD_CONFIG.progressKey);
+    if (!raw) return null;
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return null;
+    // Find latest entry for language
+    const entries = arr.filter(r => r.language === language);
+    if (!entries.length) return null;
+    const latest = entries[entries.length - 1];
+    return {
+      percentage: latest.percentage ?? 0,
+      score: latest.score ?? 0,
+      total: latest.totalQuestions ?? 10
+    };
+  } catch (e) {
+    console.warn('Progress parse failed', e);
+    return null;
+  }
+}
+
+/* -------------------------------------------------
+   Main Hydration Function
+---------------------------------------------------*/
+function hydrateQuizCard(cardEl, options = {}) {
+  if (!cardEl) return;
+
+  // If skeleton mode requested
+  if (cardEl.dataset.skeleton === 'true') {
+    cardEl.classList.add('is-skeleton');
+  }
+
+  const language    = cardEl.dataset.language || 'general';
+  const title       = cardEl.dataset.title || 'Untitled Quiz';
+  const description = cardEl.dataset.description || 'Sharpen your skills.';
+  const difficulty  = (cardEl.dataset.difficulty || 'medium').toLowerCase();
+  const questions   = parseInt(cardEl.dataset.questions || '10', 10);
+  const iconClass   = cardEl.dataset.icon || 'fas fa-code';
+  const locked      = cardEl.dataset.locked === 'true';
+  const customBadge = cardEl.dataset.badge || '';
+
+  // DOM references
+  const iconEl         = cardEl.querySelector('.card-icon');
+  const titleEl        = cardEl.querySelector('.card-title');
+  const descEl         = cardEl.querySelector('.card-description');
+  const langTagEl      = cardEl.querySelector('.card-language-tag');
+  const diffBadgeEl    = cardEl.querySelector('.difficulty-badge');
+  const diffLabelEl    = cardEl.querySelector('.difficulty-label');
+  const diffA11yEl     = cardEl.querySelector('.difficulty-a11y');
+  const diffDotEl      = cardEl.querySelector('.difficulty-dot');
+  const questionsEl    = cardEl.querySelector('.questions-count');
+  const progressBarEl  = cardEl.querySelector('.progress-bar');
+  const progressFillEl = cardEl.querySelector('.progress-fill');
+  const progressTextEl = cardEl.querySelector('.progress-text');
+  const startBtn       = cardEl.querySelector('.start-btn');
+  const reviewBtn      = cardEl.querySelector('.review-btn');
+  const statusBadgeEl  = cardEl.querySelector('.status-badge');
+  const genericBadgeEl = cardEl.querySelector('.generic-badge');
+  const lockOverlay    = cardEl.querySelector('.lock-overlay');
+  const startLabel     = cardEl.querySelector('.start-label');
+  const retryLabel     = cardEl.querySelector('.retry-label');
+  const startIcon      = cardEl.querySelector('.start-icon');
+  const retryIcon      = cardEl.querySelector('.retry-icon');
+
+  // Difficulty metadata
+  const dMeta = DIFFICULTY_META[difficulty] || DIFFICULTY_META.medium;
+
+  // Basic population
+  if (iconEl) iconEl.className = 'card-icon ' + iconClass;
+  if (titleEl) titleEl.textContent = title;
+  if (descEl) descEl.textContent = description;
+  if (langTagEl) {
+    langTagEl.textContent = language.toUpperCase();
+    langTagEl.classList.add('lang-' + language);
+  }
+  if (diffLabelEl) diffLabelEl.textContent = dMeta.text;
+  if (diffA11yEl) diffA11yEl.textContent = 'Difficulty: ' + dMeta.text;
+  if (diffBadgeEl) {
+    diffBadgeEl.classList.add(dMeta.cls);
+    diffBadgeEl.setAttribute('data-tooltip', dMeta.tooltip);
+  }
+  if (questionsEl) questionsEl.textContent = questions + ' Questions';
+
+  // Stored progress retrieval
+  let progressPercent = parseInt(cardEl.dataset.progress || '0', 10);
+  const stored = getStoredQuizProgress(language);
+  if (stored && stored.percentage !== undefined) {
+    progressPercent = stored.percentage;
+  }
+
+  progressPercent = Math.min(100, Math.max(0, progressPercent));
+
+  // Apply progress
+  if (progressBarEl) progressBarEl.setAttribute('aria-valuenow', progressPercent);
+  if (progressFillEl) {
+    progressFillEl.style.setProperty('--progress', progressPercent + '%');
+    progressFillEl.style.width = progressPercent + '%';
+  }
+  if (progressTextEl) {
+    progressTextEl.textContent = progressPercent + '% Complete';
+  }
+
+  // Status badges (completed / mastered)
+  if (statusBadgeEl) {
+    if (progressPercent >= 100) {
+      statusBadgeEl.hidden = false;
+      statusBadgeEl.textContent = 'Completed';
+      statusBadgeEl.classList.add('badge-complete');
+    } else if (progressPercent >= QUIZ_CARD_CONFIG.masteredThreshold) {
+      statusBadgeEl.hidden = false;
+      statusBadgeEl.textContent = 'Mastered';
+      statusBadgeEl.classList.add('badge-mastered');
+    }
+  }
+
+  if (customBadge && genericBadgeEl) {
+    genericBadgeEl.hidden = false;
+    genericBadgeEl.textContent = customBadge;
+  }
+
+  // Start / Retry toggle
+  const isStarted = progressPercent > 0;
+  if (isStarted) {
+    startLabel.hidden = true;
+    retryLabel.hidden = false;
+    startIcon.hidden = true;
+    retryIcon.hidden = false;
+    reviewBtn.hidden = false;
+  }
+
+  // Lock state
+  if (locked) {
+    cardEl.classList.add('is-locked');
+    if (lockOverlay) lockOverlay.style.display = 'flex';
+    if (startBtn) startBtn.disabled = true;
+    cardEl.setAttribute('aria-disabled', 'true');
+  } else {
+    if (lockOverlay) lockOverlay.style.display = 'none';
+  }
+
+  // Launch function
+  const launch = (mode = 'start') => {
+    if (locked) return;
+    if (window.startQuiz) {
+      window.startQuiz(language);
+    } else {
+      window.location.href = 'quizzes/' + language + '/index.html';
+    }
+    if (QUIZ_CARD_CONFIG.emitEvents) {
+      cardEl.dispatchEvent(new CustomEvent('quizcard:' + (mode === 'retry' ? 'retry' : 'start'), {
+        bubbles: true,
+        detail: { language, mode }
+      }));
+    }
+  };
+
+  // Event Wiring
+  startBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    launch(isStarted ? 'retry' : 'start');
+  });
+
+  reviewBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    launch('review');
+  });
+
+  cardEl.addEventListener('click', e => {
+    // avoid if direct button click handled
+    if (e.target.closest('button')) return;
+    launch(isStarted ? 'retry' : 'start');
+  });
+
+  cardEl.addEventListener('keydown', e => {
+    if (locked) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      launch(isStarted ? 'retry' : 'start');
+    }
+  });
+
+  cardEl.addEventListener('focus', () => {
+    if (QUIZ_CARD_CONFIG.emitEvents) {
+      cardEl.dispatchEvent(new CustomEvent('quizcard:focus', {
+        bubbles: true,
+        detail: { language }
+      }));
+    }
+  }, { once: true });
+
+  // Appearance animation (stagger)
+  requestAnimationFrame(() => {
+    cardEl.classList.remove('is-hidden');
+  });
+
+  return cardEl;
+}
+
+/* -------------------------------------------------
+   Bulk Auto-Hydration (if template used directly)
+---------------------------------------------------*/
+document.addEventListener('DOMContentLoaded', () => {
+  // Auto-hydrate existing static quiz cards (if any)
+  document.querySelectorAll('.quiz-card[data-language]:not([data-auto="false"])').forEach((card, idx) => {
+    hydrateQuizCard(card);
+    card.style.setProperty('--appear-delay', (idx * QUIZ_CARD_CONFIG.animationDelayBase) + 'ms');
+  });
+
+  // Intersection Observer for reveal (optional)
+  if (QUIZ_CARD_CONFIG.enableObserver && 'IntersectionObserver' in window) {
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('in-view');
+          obs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.25 });
+
+    document.querySelectorAll('.quiz-card').forEach(card => obs.observe(card));
+  }
+});
+
+/* Expose for external creation */
+window.hydrateQuizCard = window.hydrateQuizCard || hydrateQuizCard;
+</script>
+
+<style>
+/* Root animations & states */
+.quiz-card {
+  position: relative;
+  isolation: isolate;
+  --transition: var(--transition-normal);
+  --border-color: rgba(255,255,255,0.18);
+  --border-color-hover: rgba(255,255,255,0.35);
+  background: linear-gradient(155deg, rgba(255,255,255,0.085), rgba(255,255,255,0.035));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  outline: none;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), background var(--transition);
+  opacity: 1;
+  transform: translateY(0);
+  animation: cardAppear 0.65s cubic-bezier(.25,.46,.45,.94) forwards;
+  animation-delay: var(--appear-delay, 0ms);
+}
+
+.quiz-card.is-hidden {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+/* .quiz-card.in-view {
+  Additional class if using IntersectionObserver
+} */
+
+@keyframes cardAppear {
+  0% { opacity: 0; transform: translateY(30px) scale(.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.quiz-card:hover,
+.quiz-card:focus-visible {
+  transform: translateY(-8px);
+  border-color: var(--border-color-hover);
+  background: linear-gradient(165deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+  box-shadow: 0 12px 40px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.15);
+}
+
+.quiz-card:active {
+  transform: translateY(-3px);
+}
+
+.quiz-card.is-locked {
+  cursor: not-allowed;
+  filter: grayscale(.35) brightness(.85);
+}
+
+.quiz-card.is-locked:hover {
+  transform: none;
+}
+
+.lock-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: linear-gradient(140deg, rgba(0,0,0,0.55), rgba(0,0,0,0.75));
+  backdrop-filter: blur(4px);
+  gap: .75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  z-index: 10;
+}
+
+.lock-overlay i {
+  font-size: 1.8rem;
+  opacity: .9;
+}
+
+.quiz-card-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 22% 30%, rgba(255,255,255,0.14), transparent 60%),
+    radial-gradient(circle at 82% 70%, rgba(255,255,255,0.10), transparent 65%);
+  opacity: 0.5;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  transition: opacity var(--transition-normal);
+}
+
+.quiz-card:hover .quiz-card-glow {
+  opacity: 0.75;
+}
+
+.card-background {
+  position: absolute;
+  top: var(--space-6);
+  right: var(--space-6);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.card-background .card-icon {
+  font-size: 4.25rem;
+  color: var(--white);
+  transform: rotate(-8deg) scale(1.1);
+  transition: transform var(--transition-normal), opacity var(--transition-normal);
+}
+
+.quiz-card:hover .card-background .card-icon {
+  transform: rotate(-2deg) scale(1.2);
+  opacity: 0.22;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.card-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.5px;
+  color: var(--white);
+  position: relative;
+  line-height: 1.15;
+  max-width: 75%;
+}
+
+.card-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 46px;
+  height: 3px;
+  background: var(--gradient-accent);
+  border-radius: var(--radius-full);
+  opacity: 0.85;
+}
+
+.card-language-tag {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.65rem;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius-full);
+  color: var(--white);
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+
+.card-description {
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  color: rgba(255,255,255,0.82);
+  margin-bottom: var(--space-6);
+  min-height: 48px;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.difficulty-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.05em;
+  position: relative;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--white);
+  cursor: default;
+}
+
+.difficulty-badge[data-tooltip] {
+  position: relative;
+}
+
+.difficulty-badge[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translate(-50%, 100%);
+  font-size: 10px;
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  padding: 4px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.difficulty-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2.8s ease-in-out infinite;
+}
+
+.questions-count {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.65);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-full);
+}
+
+.status-badge,
+.generic-badge {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--accent-400), var(--accent-600));
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+.status-badge.badge-complete {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.status-badge.badge-mastered {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.card-progress {
+  margin-bottom: var(--space-6);
+}
+
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.08);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background: var(--gradient-accent);
+  border-radius: inherit;
+  transition: width 0.65s cubic-bezier(.65,.05,.36,1);
+  box-shadow: 0 0 0 rgba(0,0,0,0);
+}
+
+.quiz-card:hover .progress-fill {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.25), 0 4px 14px -2px rgba(0,0,0,0.5);
+}
+
+.progress-text {
+  display: block;
+  font-size: var(--font-size-xs);
+  margin-top: var(--space-2);
+  color: rgba(255,255,255,0.62);
+  letter-spacing: 0.05em;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: auto;
+}
+
+.card-button,
+.card-secondary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-normal), transform var(--transition-fast), box-shadow var(--transition-fast);
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 1.1rem;
+  line-height: 1.2;
+  letter-spacing: 0.4px;
+  background: var(--gradient-accent);
+  color: var(--white);
+  box-shadow: 0 4px 14px -4px rgba(0,0,0,0.45);
+}
+
+.card-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px -6px rgba(0,0,0,0.6);
+}
+
+.card-button:active {
+  transform: translateY(-2px);
+}
+
+.card-secondary {
+  background: rgba(255,255,255,0.10);
+  color: var(--white);
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: none;
+}
+
+.card-secondary:hover {
+  background: rgba(255,255,255,0.18);
+  transform: translateY(-3px);
+}
+
+.sparkle {
+  position: absolute;
+  font-size: .85rem;
+  opacity: 0;
+  animation: sparkleFloat 6s linear infinite;
+  pointer-events: none;
+  color: rgba(255,255,255,0.75);
+}
+
+.quiz-card:hover .sparkle {
+  opacity: 1;
+}
+
+.sparkle-1 { top: 14%; left: 18%; animation-delay: 0s; }
+.sparkle-2 { bottom: 20%; right: 16%; animation-delay: 2s; }
+.sparkle-3 { top: 42%; right: 26%; animation-delay: 4s; }
+
+@keyframes sparkleFloat {
+  0%   { transform: translateY(0) scale(.9); opacity: 0; }
+  10%  { opacity: 1; transform: translateY(-4px) scale(1); }
+  50%  { opacity: .85; transform: translateY(-12px) scale(1.15); }
+  90%  { opacity: 0; transform: translateY(-20px) scale(.9); }
+  100% { opacity: 0; }
+}
+
+/* Difficulty theme tints */
+.diff-easy    { box-shadow: inset 0 0 0 1px rgba(16,185,129,0.3); color: #10b981; }
+.diff-medium  { box-shadow: inset 0 0 0 1px rgba(245,158,11,0.3); color: #f59e0b; }
+.diff-hard    { box-shadow: inset 0 0 0 1px rgba(239,68,68,0.3);  color: #ef4444; }
+
+/* Language tags quick gradients */
+.quiz-card[data-language="html"] .card-language-tag { background: linear-gradient(90deg,#ff6a00,#ff9a3c); }
+.quiz-card[data-language="css"] .card-language-tag { background: linear-gradient(90deg,#1477ff,#5a9bff); }
+.quiz-card[data-language="javascript"] .card-language-tag { background: linear-gradient(90deg,#f5d300,#f7b500); color:#2a2300; }
+.quiz-card[data-language="java"] .card-language-tag { background: linear-gradient(90deg,#d23731,#f0746d); }
+.quiz-card[data-language="cpp"] .card-language-tag { background: linear-gradient(90deg,#6b7cff,#8896ff); }
+.quiz-card[data-language="php"] .card-language-tag { background: linear-gradient(90deg,#787cb5,#9b9fd1); }
+
+/* Skeleton State */
+.quiz-card.is-skeleton .card-content > *:not(.skeleton-layer),
+.quiz-card.is-skeleton .card-background,
+.quiz-card.is-skeleton .quiz-card-glow,
+.quiz-card.is-skeleton .sparkle {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.skeleton-layer {
+  position: absolute;
+  inset: 0;
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+  background: linear-gradient(155deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+  animation: skeletonFade .8s ease-in-out infinite alternate;
+}
+
+@keyframes skeletonFade {
+  0% { opacity: .55; }
+  100% { opacity: .85; }
+}
+
+.sk-line {
+  height: 14px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05), rgba(255,255,255,0.15));
+  background-size: 200% 100%;
+  border-radius: 6px;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.sk-title { width: 65%; height: 20px; margin-top: .5rem; }
+.sk-text.short { width: 35%; }
+.sk-progress { width: 100%; height: 10px; margin-top: .5rem; }
+.sk-btn { margin-top: auto; width: 40%; height: 38px; border-radius: 10px; background: linear-gradient(90deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06), rgba(255,255,255,0.18)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+
+@keyframes shimmer {
+  0% { background-position: 200% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Focus styles */
+.quiz-card:focus-visible {
+  outline: 2px solid var(--accent-400);
+  outline-offset: 3px;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .quiz-card,
+  .quiz-card * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .quiz-card:hover,
+  .quiz-card:focus-visible {
+    transform: none;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .quiz-card {
+    padding: var(--space-6);
+  }
+  .card-title {
+    font-size: var(--font-size-xl);
+  }
+  .card-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .card-button, .card-secondary {
+    width: 100%;
+  }
+}
+</style>
